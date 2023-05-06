@@ -1,5 +1,8 @@
 package jpabook.jpashop.domain;
 
+import static jakarta.persistence.CascadeType.ALL;
+import static jakarta.persistence.FetchType.LAZY;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -28,14 +31,14 @@ public class Order {
     @Column(name = "order_id")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
 
-    @OneToMany(mappedBy = "order")
+    @OneToMany(mappedBy = "order", cascade = ALL)
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    @OneToOne
+    @OneToOne(fetch = LAZY, cascade = ALL)
     @JoinColumn(name = "delivery_id")
     private Delivery delivery;
 
@@ -43,4 +46,21 @@ public class Order {
 
     @Enumerated(EnumType.STRING) // EnumType.ORDINAL 은 숫자로 들어가기 때문에 중간에 다른 상태가 추가되면 문제가 생길 수 있음
     private OrderStatus status; // 주문 상태 [ORDER, CANCEL]
+
+    //== 연관관계 편의 메서드 ==//
+    // 양방향 연관관계에서는 연관관계 편의 메서드를 작성하는 것이 좋음
+    public void setMember(Member member) {
+        this.member = member;
+        member.getOrders().add(this);
+    }
+
+    public void addOrderItem(OrderItem orderItem) {
+        orderItems.add(orderItem);
+        orderItem.setOrder(this);
+    }
+
+    public void setDelivery(Delivery delivery) {
+        this.delivery = delivery;
+        delivery.setOrder(this);
+    }
 }

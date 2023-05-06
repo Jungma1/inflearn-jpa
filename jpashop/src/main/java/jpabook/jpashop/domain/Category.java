@@ -1,5 +1,7 @@
 package jpabook.jpashop.domain;
 
+import static jakarta.persistence.FetchType.LAZY;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -31,7 +33,7 @@ public class Category {
             inverseJoinColumns = @JoinColumn(name = "item_id")) // 다대다 관계를 일대다, 다대일 관계로 풀어내기 위해 연결 테이블을 사용
     private List<Item> items = new ArrayList<>();
 
-    @ManyToOne
+    @ManyToOne(fetch = LAZY)
     @JoinColumn(name = "parent_id")
     private Category parent;
 
@@ -39,4 +41,10 @@ public class Category {
     private List<Category> child = new ArrayList<>();
 
     private String name;
+
+    //== 연관관계 편의 메서드 ==//
+    public void addChildCategory(Category child) {
+        this.child.add(child);
+        child.setParent(this);
+    }
 }
