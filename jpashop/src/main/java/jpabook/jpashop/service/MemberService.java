@@ -43,6 +43,15 @@ public class MemberService {
         return memberRepository.findOne(memberId);
     }
 
+    /**
+     * 회원 정보 수정
+     */
+    @Transactional
+    public void update(Long id, String name) {
+        Member member = memberRepository.findOne(id);
+        member.setName(name);
+    }
+
     private void validateDuplicateMember(Member member) {
         // name 필드에 유니크 제약 조건을 걸어두는 것이 좋다. (동시에 같은 이름으로 가입하는 경우가 있을 수 있음)
         List<Member> findMembers = memberRepository.findByName(member.getName());
