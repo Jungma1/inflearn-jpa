@@ -21,7 +21,7 @@ import org.hibernate.annotations.NamedQuery;
 @ToString(of = {"id", "username", "age"})
 @NamedQuery(name = "Member.findByUsername", query = "select m from Member m where m.username = :username")
 @Entity
-public class Member {
+public class Member extends BaseEntity {
 
     @Id
     @GeneratedValue

@@ -296,4 +296,10 @@ class MemberRepositoryTest {
         // when
         List<Member> findMember = memberRepository.findLockByUsername("memberA");
     }
+
+    @Test
+    @DisplayName("사용자 정의 리포지토리 테스트")
+    void call_custom() {
+        List<Member> members = memberRepository.findMemberCustom();
+    }
 }
