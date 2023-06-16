@@ -11,17 +11,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Example;
+import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.annotation.Rollback;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 import study.datajpa.entity.Team;
 
-@Rollback(false)
 @Transactional
 @SpringBootTest
 class MemberRepositoryTest {
@@ -301,5 +302,131 @@ class MemberRepositoryTest {
     @DisplayName("사용자 정의 리포지토리 테스트")
     void call_custom() {
         List<Member> members = memberRepository.findMemberCustom();
+    }
+
+    @Test
+    @DisplayName("Specification 테스트 (실무 사용 X)")
+    void spec_basic() {
+        // given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        Specification<Member> spec = MemberSpec.username("m1").and(MemberSpec.teamName("teamA"));
+        List<Member> members = memberRepository.findAll(spec);
+
+        // then
+        assertThat(members.size()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Query By Example 테스트 (실무 사용 X)")
+    void query_by_example() {
+        // given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        Member member = new Member("m1");
+        Team team = new Team("teamA");
+        member.setTeam(team);
+
+        ExampleMatcher matcher = ExampleMatcher.matching()
+                .withIgnorePaths("age");
+
+        Example<Member> example = Example.of(member, matcher);
+
+        List<Member> members = memberRepository.findAll(example);
+
+        // then
+        assertThat(members.get(0).getUsername()).isEqualTo("m1");
+    }
+
+    @Test
+    @DisplayName("Projections 테스트")
+    void projections() {
+        // given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        List<UsernameOnly> result = memberRepository.findProjectionsByUsername("m1");
+        for (UsernameOnly usernameOnly : result) {
+            // 스프링이 만든 구현체
+            // usernameOnly = org.springframework.data.jpa.repository.query.AbstractJpaQuery$TupleConverter$TupleBackedMap@1582dfec
+            System.out.println("usernameOnly = " + usernameOnly);
+        }
+
+        List<UsernameOnlyDto> result2 = memberRepository.findProjectionsDtoByUsername("m1");
+        for (UsernameOnlyDto usernameOnlyDto : result2) {
+            // usernameOnlyDto = study.datajpa.repository.UsernameOnlyDto@2407f1a8
+            System.out.println("usernameOnlyDto = " + usernameOnlyDto);
+        }
+
+        List<UsernameOnlyDto> result3 = memberRepository.findProjectionsByUsername("m1", UsernameOnlyDto.class);
+        for (UsernameOnlyDto usernameOnlyDto : result3) {
+            // usernameOnlyDto = study.datajpa.repository.UsernameOnlyDto@18bec5eb
+            System.out.println("usernameOnlyDto = " + usernameOnlyDto);
+        }
+
+        List<NestedClosedProjections> result4 = memberRepository.findProjectionsByUsername("m1",
+                NestedClosedProjections.class);
+        for (NestedClosedProjections nestedClosedProjections : result4) {
+            String username = nestedClosedProjections.getUsername();
+            System.out.println("username = " + username);
+            String teamName = nestedClosedProjections.getTeam().getName();
+            System.out.println("teamName = " + teamName);
+        }
+    }
+
+    @Test
+    @DisplayName("네이티브 쿼리 테스트")
+    void native_query() {
+        // given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1", 0, teamA);
+        Member m2 = new Member("m2", 0, teamA);
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        Member result = memberRepository.findNativeQuery("m1");
+        System.out.println("result = " + result);
+
+        Page<MemberProjection> result2 = memberRepository.findByNativeProjection(PageRequest.of(0, 10));
+        List<MemberProjection> content = result2.getContent();
+        for (MemberProjection memberProjection : content) {
+            System.out.println("memberProjection = " + memberProjection.getUsername());
+            System.out.println("memberProjection = " + memberProjection.getTeamName());
+        }
     }
 }
